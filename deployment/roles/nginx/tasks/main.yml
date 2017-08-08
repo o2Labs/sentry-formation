@@ -1,0 +1,41 @@
+---
+# defaults file for nginx install
+- name: install nginx
+  apt: name=nginx state=present update_cache=yes
+  tags: nginx
+
+# Auto enable nginx
+- name: nginx auto start on boot
+  service: name=nginx enabled=yes
+  tags: nginx
+
+# Update main config for site
+- name: update the main nginx config
+  template: src=nginx_main_conf.j2 dest={{nginx.main_dir}}/nginx.conf
+  notify:
+    - Restart nginx
+  tags: nginx
+
+# Create SSL Cert Dir
+- name: create ssl directory
+  file: path=/etc/nginx/ssl state=directory
+  when: "{{is_local}} == false"
+  notify:
+    - Restart nginx
+  tags: nginx
+
+- name: move and change ssl permissions for bundle and server.key
+  when: "{{is_local}} == false"
+  copy:
+    remote_src: true
+    src: /tmp/{{ item }}
+    dest: /etc/nginx/ssl/{{ item }}
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+  with_items:
+    - "bundle.crt"
+    - "server.key"
+  notify:
+    - Restart nginx
+  tags: nginx

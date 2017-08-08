@@ -1,0 +1,25 @@
+[program:sentry]
+user=sentry
+group=sentry
+command=/www/sentry/ve/bin/sentry --config=/etc/sentry run web
+environment=PATH="/www/sentry/ve/bin",HOME="/home/sentry/",USER="sentry"
+autostart=true
+autorestart=true
+redirect_stderr=true
+
+# See https://docs.getsentry.com/on-premise/server/installation/#configure-supervisord
+[program:celery_beat]
+command=/www/sentry/ve/bin/sentry --config=/etc/sentry run cron --pidfile=/home/sentry/celerybeat.pid
+environment=PATH="/www/sentry/ve/bin",HOME="/home/sentry/",USER="sentry"
+autostart=true
+autorestart=true
+redirect_stderr=true
+
+[program:celery_worker]
+user=sentry
+group=sentry
+command=/www/sentry/ve/bin/sentry --config=/etc/sentry run worker
+environment=PATH="/www/sentry/ve/bin",HOME="/home/sentry/",USER="sentry"
+autostart=true
+autorestart=true
+redirect_stderr=true

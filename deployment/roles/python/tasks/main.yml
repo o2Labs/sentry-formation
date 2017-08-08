@@ -1,0 +1,30 @@
+---
+- name: Install python dependencies
+  apt: name={{ system_packages }} state=present
+  tags:
+    - python
+    - python-dependencies
+
+- name: Install python libs
+  apt: name={{ other_python_pkgs }} state=present
+  tags:
+    - python
+    - python-dependencies
+
+- name: Install all relevant files for server
+  pip: name={{item}} executable=pip
+  with_items:
+    - urllib3
+    - pyopenssl
+    - ndg-httpsclient
+    - pyasn1
+    - virtualenv
+  tags:
+    - python
+    - python-dependencies
+
+- name: install python mysql bindings for mysql commands
+  apt: name=python-mysqldb state=installed
+  tags:
+    - python
+    - python-dependencies

@@ -1,0 +1,30 @@
+---
+# Postgres create postgres db
+
+- name: install postgresql python bindings
+  pip:
+    name: psycopg2
+  tags: postgres_db
+
+- name: setup database local
+  become_user: postgres
+  when: "{{is_local}} == true"
+  postgresql_db:
+    name: "{{ sentry_db_name }}"
+    encoding: 'UTF-8'
+    lc_collate: 'en_US.UTF-8'
+    lc_ctype: 'en_US.UTF-8'
+    template: 'template0'
+    state: present
+  tags: postgres_db
+
+- name: grant access for database to user local
+  become_user: postgres
+  when: "{{is_local}} == true"
+  postgresql_user:
+    name: "{{ sentry_db_name }}"
+    user: "{{ sentry_db_user }}"
+    password: "{{ sentry_db_password }}"
+    role_attr_flags: "CREATEDB,SUPERUSER"
+    state: present
+  tags: postgres_db

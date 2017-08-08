@@ -1,0 +1,16 @@
+---
+- name: Upgrade apt packages
+  apt: upgrade=yes
+       update_cache=yes
+
+- name: Install NTP
+  apt: pkg=ntp
+
+- name: Install prerequisite packages that are necessary to compile applications and gems with native extensions
+  apt: pkg={{ item }}
+  with_items:
+    - autoconf
+    - build-essential
+
+- name: Install python-software-properties so the apt_repository module will work properly
+  apt: pkg=python-software-properties 

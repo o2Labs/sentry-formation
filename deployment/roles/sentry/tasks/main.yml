@@ -1,0 +1,94 @@
+---
+# Sentry install
+
+# Create sentry user
+- name: Create sentry user
+  user:
+      home: /home/sentry/
+      name: sentry
+      state: present
+  tags: sentry
+
+# Create www folder if not there already
+- name: Create www folder
+  file:
+    path: /www
+    state: directory
+  tags: sentry
+
+# Choose a location for the environment, and create it with the virtualenv command.
+- name: create virtualenv location
+  command: virtualenv /www/sentry/
+  tags: sentry
+
+# Install sentry
+- name: install sentry
+  pip: 
+    name: sentry
+    virtualenv: /www/sentry/ve
+  tags: sentry
+
+# Install sentry
+- name: install sentry GitHub SSO
+  pip: 
+    name: https://github.com/getsentry/sentry-auth-github/archive/master.zip
+    virtualenv: /www/sentry/ve
+  tags: sentry
+
+- name: ensure configuration folder created
+  file: path=/etc/sentry/ state=directory
+  tags: sentry
+
+- name: install celery with redis
+  pip:
+    name: celery[redis]
+    virtualenv: /www/sentry/ve
+  tags: sentry
+
+# create configuration
+- name: create sentry config
+  template:
+    src: sentry_conf.j2
+    dest: /etc/sentry/sentry.conf.py
+  tags: sentry
+
+- name: create sentry config yml
+  template:
+    src: sentry_yml.j2
+    dest: /etc/sentry/config.yml
+  tags: sentry
+
+- name: Copy supervisor configuration for sentry
+  template:
+    src: supervisor-sentry.conf.j2
+    dest: /etc/supervisor/conf.d/sentry.conf
+  notify:
+    - reload supervisor
+  tags: sentry
+
+- name: upgrade
+  shell: /www/sentry/ve/bin/sentry  --config=/etc/sentry/ upgrade --noinput
+  become_user: sentry
+  tags: sentry
+
+# create a user
+- name: create superuser
+  shell: /www/sentry/ve/bin/sentry --config=/etc/sentry createuser --email {{sentry_admin_username}} --password {{sentry_admin_password}} --superuser --no-input 
+  become_user: sentry
+  ignore_errors: yes
+  tags: sentry
+
+- name: update the sentry nginx config
+  template:
+    src: nginx-sentry.conf.j2
+    dest: '{{nginx.main_dir}}/sites-enabled/default'
+  notify:
+    - Restart nginx
+  tags: sentry
+
+# need as a service
+- name: run sentry
+  service:
+    name: supervisor
+    state: restarted
+  tags: sentry

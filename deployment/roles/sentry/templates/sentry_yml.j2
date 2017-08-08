@@ -1,0 +1,67 @@
+# While a lot of configuration in Sentry can be changed via the UI, for all
+# new-style config (as of 8.0) you can also declare values here in this file
+# to enforce defaults or to ensure they cannot be changed via the UI. For more
+# information see the Sentry documentation.
+
+system.url-prefix: 'https://{{ sentry_public_dns_name }}'
+
+###############
+# Mail Server #
+###############
+
+{% if sentry_mail_host %}
+mail.backend: 'smtp'  # Use dummy if you want to disable email entirely
+mail.host: '{{ sentry_mail_host }}'
+mail.port: {{ sentry_mail_port }}
+mail.username: '{{ sentry_mail_username }}'
+mail.password: '{{ sentry_mail_password }}'
+mail.use-tls: true
+# The email address to send on behalf of
+mail.from: '{{ sentry_mail_from }}'
+
+# If you'd like to configure email replies, enable this.
+mail.enable-replies: false
+{% endif %}
+
+# When email-replies are enabled, this value is used in the Reply-To header
+# mail.reply-hostname: ''
+
+# If you're using mailgun for inbound mail, set your API key and configure a
+# route to forward to /api/hooks/mailgun/inbound/
+# mail.mailgun-api-key: ''
+
+###################
+# System Settings #
+###################
+
+# If this file ever becomes compromised, it's important to regenerate your a new key
+# Changing this value will result in all current sessions being invalidated.
+# A new key can be generated with `$ sentry config generate-secret-key`
+system.secret-key: '{{ sentry_secret_key }}'
+
+# The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis
+# clusters. These clusters can be then referred to by name when configuring
+# backends such as the cache, digests, or TSDB backend.
+redis.clusters:
+  default:
+    hosts:
+      0:
+        host: {{ sentry_redis_host }}
+        port: {{sentry_redis_port}}
+
+################
+# File storage #
+################
+
+# Uploaded media uses these `filestore` settings. The available
+# backends are either `filesystem` or `s3`.
+
+{% if is_local == 'true' %}
+filestore.backend: 'filesystem'
+filestore.options:
+  location: '/tmp/sentry-files'
+{% else %}
+filestore.backend: 's3'
+filestore.options:
+  bucket_name: '{{ sentry_files_bucket_name }}'
+{% endif %}

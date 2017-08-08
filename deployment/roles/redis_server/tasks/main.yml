@@ -1,0 +1,5 @@
+# Redis server
+---
+
+- name: Install prerequisite packages that are necessary to compile applications and gems with native extensions
+  apt: pkg=redis-server

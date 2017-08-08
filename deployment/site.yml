@@ -1,0 +1,36 @@
+---
+
+- hosts: aws
+  connection: local
+  roles:
+    - common
+    - python
+    - nginx
+    - postgres_db
+    - supervisor
+    - sentry
+    - java
+    - cis_cat
+  gather_facts: false
+  pre_tasks:
+    - raw: apt-get install python-minimal aptitude -y
+    - action: setup
+  become: yes
+
+- hosts: dev
+  roles:
+    - common
+    - redis_server
+    - python
+    - nginx
+    - postgres_install
+    - postgres_db
+    - supervisor
+    - sentry
+    - java
+    - cis_cat
+  gather_facts: false
+  pre_tasks:
+    - raw: apt-get install python-minimal aptitude -y
+    - action: setup
+  become: yes # become sudo
