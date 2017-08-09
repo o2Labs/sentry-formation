@@ -1,0 +1,26 @@
+[dev]
+33.33.33.20 ansible_ssh_private_key_file=.vagrant/machines/default/virtualbox/private_key 
+
+[dev:vars]
+user=vagrant
+owner="Example Company Name"
+sentry_admin_username="sentry@example.com"
+sentry_admin_password="CHANGE_ME"
+sentry_url="sentry.example.com"
+sentry_db_host="localhost"
+sentry_db_port="5432"
+sentry_db_name="sentry"
+sentry_db_user="sentrydbadmin"
+sentry_db_password="CHANGE_ME"
+sentry_redis_host="127.0.0.1"
+sentry_redis_port="6379"
+sentry_secret_key="CHANGE_ME"
+#sentry_public_dns_name="localhost"
+#sentry_mail_host="mail.example.com"
+#sentry_mail_port="25"
+#sentry_mail_username="sentrysmtpuser"
+#sentry_mail_password="CHANGE_ME"
+#sentry_mail_from="sentry@example.com"
+#sentry_github_app_id="YOUR_GITHUB_APP_ID"
+#sentry_github_api_secret="CHANGE_ME"
+#sentry_files_bucket_name="123456789-example-sentry-files"

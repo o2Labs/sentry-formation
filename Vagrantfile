@@ -7,7 +7,6 @@
 # you're doing.
 Vagrant.configure("2") do |config|
   config.vm.box = "bento/ubuntu-16.04"
-  config.vm.host_name = "app"
+  config.vm.host_name = "sentry"
   config.vm.network "private_network", ip: "33.33.33.20"
-  config.vm.network "forwarded_port", guest: 80, host: 4567
 end

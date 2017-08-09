@@ -897,11 +897,11 @@ Resources:
             - openssl req -new -nodes -x509 -subj "/C=GB/ST=London/L=London/O=Private/CN=${AWS::StackName}" -days 3650 -keyout /tmp/server.key -out /tmp/bundle.crt -extensions v3_ca
             - curl https://github.com/o2Labs/sentry-formation/archive/master.zip --output /tmp/repo.zip --location
             - tar -xzvf /tmp/repo.zip -C /tmp/
-            - echo "${DeploymentHosts}" > /tmp/deployment_hosts.base64
-            - base64 -d /tmp/deployment_hosts.base64 > /tmp/deployment_hosts.encrypted
-            - aws kms decrypt --region ${AWS::Region} --ciphertext-blob "fileb:///tmp/deployment_hosts.encrypted" --output text --query Plaintext > /tmp/deployment_hosts.decrypted
-            - base64 -d /tmp/deployment_hosts.decrypted > /tmp/deployment/deployment_hosts
-            - ansible-playbook /tmp/deployment/site.yml -i /tmp/deployment/deployment_hosts --limit aws
+            - echo "${DeploymentHosts}" > /tmp/hosts.base64
+            - base64 -d /tmp/hosts.base64 > /tmp/hosts.encrypted
+            - aws kms decrypt --region ${AWS::Region} --ciphertext-blob "fileb:///tmp/hosts.encrypted" --output text --query Plaintext > /tmp/hosts.decrypted
+            - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-master/hosts
+            - ansible-playbook /tmp/sentry-formation-master/site.yml -i /tmp/sentry-formation-master/hosts --limit aws
           - DeploymentHosts: !GetAtt EncryptedDeploymentHosts.CipherText
 
   SentryAutoScalingGroup:
