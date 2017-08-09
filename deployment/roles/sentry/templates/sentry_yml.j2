@@ -3,13 +3,15 @@
 # to enforce defaults or to ensure they cannot be changed via the UI. For more
 # information see the Sentry documentation.
 
+{% if sentry_public_dns_name is defined %}
 system.url-prefix: 'https://{{ sentry_public_dns_name }}'
+{% endif %}
 
 ###############
 # Mail Server #
 ###############
 
-{% if sentry_mail_host %}
+{% if sentry_mail_host is defined %}
 mail.backend: 'smtp'  # Use dummy if you want to disable email entirely
 mail.host: '{{ sentry_mail_host }}'
 mail.port: {{ sentry_mail_port }}
@@ -56,12 +58,12 @@ redis.clusters:
 # Uploaded media uses these `filestore` settings. The available
 # backends are either `filesystem` or `s3`.
 
-{% if is_local == 'true' %}
-filestore.backend: 'filesystem'
-filestore.options:
-  location: '/tmp/sentry-files'
-{% else %}
+{% if sentry_files_bucket_name is defined %}
 filestore.backend: 's3'
 filestore.options:
   bucket_name: '{{ sentry_files_bucket_name }}'
+{% else %}
+filestore.backend: 'filesystem'
+filestore.options:
+  location: '/tmp/sentry-files'
 {% endif %}

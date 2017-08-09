@@ -140,6 +140,8 @@ SENTRY_WEB_OPTIONS = {
 ###################
 
 SENTRY_FEATURES['auth:register'] = False
+{% if sentry_github_app_id is defined %}
 GITHUB_APP_ID = "{{ sentry_github_app_id }}"
 GITHUB_API_SECRET = "{{ sentry_github_api_secret }}"
 GITHUB_REQUIRE_VERIFIED_EMAIL = True
+{% endif %}

@@ -6,7 +6,6 @@
     - common
     - python
     - nginx
-    - postgres_db
     - supervisor
     - sentry
     - java

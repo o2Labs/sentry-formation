@@ -846,7 +846,6 @@ Resources:
 
           [aws:vars]
           user=ubuntu
-          is_local=false
           owner="${Owner}"
           sentry_admin_username="${SentryAdminUser}"
           sentry_admin_password="${SentryAdminPassword}"

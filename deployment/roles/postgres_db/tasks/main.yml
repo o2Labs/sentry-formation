@@ -8,7 +8,6 @@
 
 - name: setup database local
   become_user: postgres
-  when: "{{is_local}} == true"
   postgresql_db:
     name: "{{ sentry_db_name }}"
     encoding: 'UTF-8'
@@ -20,11 +19,8 @@
 
 - name: grant access for database to user local
   become_user: postgres
-  when: "{{is_local}} == true"
   postgresql_user:
-    name: "{{ sentry_db_name }}"
-    user: "{{ sentry_db_user }}"
+    name: "{{ sentry_db_user }}"
     password: "{{ sentry_db_password }}"
     role_attr_flags: "CREATEDB,SUPERUSER"
-    state: present
   tags: postgres_db
