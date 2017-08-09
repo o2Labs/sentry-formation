@@ -8,7 +8,6 @@
     - nginx
     - supervisor
     - sentry
-    - java
     - cis_cat
   gather_facts: false
   pre_tasks:
@@ -26,7 +25,6 @@
     - postgres_db
     - supervisor
     - sentry
-    - java
     - cis_cat
   gather_facts: false
   pre_tasks:
