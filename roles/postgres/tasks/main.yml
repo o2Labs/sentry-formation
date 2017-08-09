@@ -1,12 +1,21 @@
 ---
 # Postgres create postgres db
 
-- name: install postgresql python bindings
+- name: Install postgresql packages
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - postgresql
+    - postgresql-contrib
+    - postgresql-client
+    - libpq-dev
+  tags: postgres
+
+- name: Install postgresql python bindings
   pip:
     name: psycopg2
-  tags: postgres_db
+  tags: postgres
 
-- name: setup database local
+- name: Create database
   become_user: postgres
   postgresql_db:
     name: "{{ sentry_db_name }}"
@@ -15,12 +24,12 @@
     lc_ctype: 'en_US.UTF-8'
     template: 'template0'
     state: present
-  tags: postgres_db
+  tags: postgres
 
-- name: grant access for database to user local
+- name: Grant access for database to user
   become_user: postgres
   postgresql_user:
     name: "{{ sentry_db_user }}"
     password: "{{ sentry_db_password }}"
     role_attr_flags: "CREATEDB,SUPERUSER"
-  tags: postgres_db
+  tags: postgres
