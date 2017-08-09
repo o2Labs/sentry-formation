@@ -10,9 +10,14 @@
     - sentry
     - cis_cat
   gather_facts: false
+  # Because Ubuntu doesn't come with correct version of Python
   pre_tasks:
-    - raw: apt-get install python-minimal aptitude -y
-    - action: setup
+    - name: Update apt packages
+      raw: apt-get update
+    - name: Install python
+      raw: apt-get install python-minimal aptitude -y
+    - name: Gather facts
+      action: setup
   become: yes
 
 - hosts: dev
@@ -27,7 +32,12 @@
     - sentry
     - cis_cat
   gather_facts: false
+  # Because Ubuntu doesn't come with correct version of Python
   pre_tasks:
-    - raw: apt-get install python-minimal aptitude -y
-    - action: setup
+    - name: Update apt packages
+      raw: apt-get update
+    - name: Install python
+      raw: apt-get install python-minimal aptitude -y
+    - name: Gather facts
+      action: setup
   become: yes # become sudo

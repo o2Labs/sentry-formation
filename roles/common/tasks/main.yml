@@ -1,6 +1,6 @@
 ---
 - name: Upgrade apt packages
-  apt: upgrade=yes
+  apt: upgrade=dist
        update_cache=yes
 
 - name: Install NTP
@@ -13,4 +13,4 @@
     - build-essential
 
 - name: Install python-software-properties so the apt_repository module will work properly
-  apt: pkg=python-software-properties 
+  apt: pkg=python-software-properties
