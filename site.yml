@@ -8,7 +8,6 @@
     - nginx
     - supervisor
     - sentry
-    - cis_cat
   gather_facts: false
   # Because Ubuntu doesn't come with correct version of Python
   pre_tasks:
@@ -30,7 +29,6 @@
     - postgres_db
     - supervisor
     - sentry
-    - cis_cat
   gather_facts: false
   # Because Ubuntu doesn't come with correct version of Python
   pre_tasks:
