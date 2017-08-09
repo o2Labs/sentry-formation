@@ -1,64 +1,102 @@
 ---
+
+- name: Install python libs
+  apt: name={{ other_python_pkgs }} state=present
+  tags:
+    - python
+
+- name: Install all relevant files for server
+  pip: name={{item}} executable=pip
+  with_items:
+    - urllib3
+    - pyopenssl
+    - ndg-httpsclient
+    - pyasn1
+    - virtualenv
+  tags:
+    - python
+
+- name: install python mysql bindings for mysql commands
+  apt: name=python-mysqldb state=installed
+  tags:
+    - python
+
+# Supervisor
+
+- name: Install supervisor
+  apt: pkg=supervisor state=latest
+  tags: supervisor
+
+- name: Create supervisor conf.d directory
+  file:
+    path: /etc/supervisor/conf.d
+    state: directory
+  tags: supervisor
+
+- name: Create supervisor log directory
+  file:
+    path: /var/log/supervisor
+    state: directory
+  tags: supervisor
+
+- name: Configure supervisor globals
+  copy: src=supervisord.conf dest=/etc/supervisord.conf
+  tags: supervisor
+
 # Sentry install
 
-# Create sentry user
-- name: Create sentry user
+- name: Create Sentry user
   user:
       home: /home/sentry/
       name: sentry
       state: present
   tags: sentry
 
-# Create www folder if not there already
 - name: Create www folder
   file:
     path: /www
     state: directory
   tags: sentry
 
-# Choose a location for the environment, and create it with the virtualenv command.
-- name: create virtualenv location
+- name: Create Sentry virtualenv location
   command: virtualenv /www/sentry/
   tags: sentry
 
-# Install sentry
-- name: install sentry
+- name: Install Sentry
   pip: 
     name: sentry
     virtualenv: /www/sentry/ve
   tags: sentry
 
-# Install sentry
-- name: install sentry GitHub SSO
+- name: Install Sentry GitHub auth
   pip: 
     name: https://github.com/getsentry/sentry-auth-github/archive/master.zip
     virtualenv: /www/sentry/ve
   tags: sentry
 
-- name: ensure configuration folder created
+- name: Create Sentry configuration folder
   file: path=/etc/sentry/ state=directory
   tags: sentry
 
-- name: install celery with redis
+- name: Install celery with redis
   pip:
     name: celery[redis]
     virtualenv: /www/sentry/ve
   tags: sentry
 
-# create configuration
-- name: create sentry config
+- name: Create Sentry python config
   template:
     src: sentry_conf.j2
     dest: /etc/sentry/sentry.conf.py
   tags: sentry
 
-- name: create sentry config yml
+- name: Create Sentry config yml
   template:
     src: sentry_yml.j2
     dest: /etc/sentry/config.yml
   tags: sentry
 
-- name: Copy supervisor configuration for sentry
+- name: Create Sentry supervisor configuration
   template:
     src: supervisor-sentry.conf.j2
     dest: /etc/supervisor/conf.d/sentry.conf
@@ -66,19 +104,18 @@
     - reload supervisor
   tags: sentry
 
-- name: upgrade
+- name: Upgrade Sentry
   shell: /www/sentry/ve/bin/sentry  --config=/etc/sentry/ upgrade --noinput
   become_user: sentry
   tags: sentry
 
-# create a user
-- name: create superuser
+- name: Create Sentry superuser
   shell: /www/sentry/ve/bin/sentry --config=/etc/sentry createuser --email {{sentry_admin_username}} --password {{sentry_admin_password}} --superuser --no-input 
   become_user: sentry
   ignore_errors: yes
   tags: sentry
 
-- name: update the sentry nginx config
+- name: Update Sentry nginx config
   template:
     src: nginx-sentry.conf.j2
     dest: '{{nginx.main_dir}}/sites-enabled/default'
@@ -86,8 +123,7 @@
     - Restart nginx
   tags: sentry
 
-# need as a service
-- name: run sentry
+- name: Start Sentry
   service:
     name: supervisor
     state: restarted

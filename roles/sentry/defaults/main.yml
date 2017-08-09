@@ -1,12 +1,3 @@
-system_packages:
-  - python-setuptools
-  - python-dev
-  - python-pip
-  - libncurses-dev
-  - git
-  - make
-  - gcc
-  - gfortran
 other_python_pkgs:
   - build-essential
   - libxslt1-dev

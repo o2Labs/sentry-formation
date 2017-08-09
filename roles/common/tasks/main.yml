@@ -6,14 +6,16 @@
 - name: Install NTP
   apt: pkg=ntp
 
-- name: Install prerequisite packages that are necessary to compile applications and gems with native extensions
+- name: Install prerequisite packages
   apt: pkg={{ item }}
   with_items:
     - autoconf
     - build-essential
-
-- name: Install python-software-properties so the apt_repository module will work properly
-  apt: pkg=python-software-properties
+    - python-setuptools
+    - python-software-properties
+    - python-dev
+    - python-pip
+    - libncurses-dev
 
 # CIS CAT secuirty configurations
 

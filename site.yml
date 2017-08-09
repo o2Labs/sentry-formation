@@ -4,9 +4,7 @@
   connection: local
   roles:
     - common
-    - python
     - nginx
-    - supervisor
     - sentry
   gather_facts: false
   # Because Ubuntu doesn't come with correct version of Python
@@ -23,10 +21,8 @@
   roles:
     - common
     - redis
-    - python
-    - nginx
     - postgres
-    - supervisor
+    - nginx
     - sentry
   gather_facts: false
   # Because Ubuntu doesn't come with correct version of Python
