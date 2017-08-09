@@ -2,6 +2,9 @@ Description: A Sentry stack for AWS
 Parameters:
 
   #### Required ####
+  Owner:
+    Type: String
+    Description: Name of the owner of the service (normally your company name)
   DBMasterUsername:
     Type: String
     MinLength: '1'
@@ -844,6 +847,7 @@ Resources:
           [aws:vars]
           user=ubuntu
           is_local=false
+          owner="${Owner}"
           sentry_admin_username="${SentryAdminUser}"
           sentry_admin_password="${SentryAdminPassword}"
           sentry_public_dns_name="${SentryPublicDnsName}"

@@ -1,3 +1,4 @@
 ### Ansible ###
 *.retry
 deployment_hosts
+.vagrant

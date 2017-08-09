@@ -251,6 +251,27 @@
     - cis_cat_security
     - ufw
 
+- name: Ensure MOTD does not allow group write access
+  file: path=/etc/motd state=touch owner=root group=root mode=644
+  become: true
+  tags:
+    - cis_cat_security
+    - motd
+
+- name: Create MOTD on issue.net
+  template: src=motd_banner.j2 dest=/etc/issue.net owner=root group=root mode=644
+  become: true
+  tags:
+    - cis_cat_security
+    - motd
+
+- name: set ssh banner
+  shell: "sed -i '/^#Banner /s/^#//' /etc/ssh/sshd_config"
+  become: true
+  tags:
+    - cis_cat_security
+    - motd
+
 - name: disable x window
   apt:
     name: xserver-xorg-core*
