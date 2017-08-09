@@ -22,7 +22,7 @@
 - hosts: dev
   roles:
     - common
-    - redis_server
+    - redis
     - python
     - nginx
     - postgres
