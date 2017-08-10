@@ -1,12 +1,23 @@
-## What is it
+# What is it
 
 An attempt to follow best practices to create a production-ready installation of Sentry.io on AWS.
 
+Features:
+- HTTPS end-to-end
+- Load-balanced, Multi-AZ setup
+- Creates own VPC
+- Encryption using integrated KMS key
+- Limit sentry access to your GitHub organisation
+
 ## Getting Started
 
-1. Upload `cloud-formation.yaml` to the [AWS console](https://console.aws.amazon.com/cloudformation/home?#/stacks/new)
-2. Fill in the parameters.
-3. Review, and click "Create".
+Just click [![Launch Stack](launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=sentry&templateURL=https:%2F%2Fs3-eu-west-1.amazonaws.com%2Fsentry-formation%2Fcloud-formation.yaml)
+
+Or click ["Create Stack" in the CloudFormation AWS console](https://console.aws.amazon.com/cloudformation/home?#/stacks/new) and specify the Amazon S3 template URL:
+
+```
+https://s3-eu-west-1.amazonaws.com/sentry-formation/cloud-formation.yaml
+```
 
 ### Automating Deployments
 
