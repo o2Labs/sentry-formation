@@ -893,15 +893,15 @@ Resources:
             #cloud-config
             runcmd:
             - apt-get update
-            - apt-get install ansible awscli -y
+            - apt-get install ansible awscli unzip -y
             - openssl req -new -nodes -x509 -subj "/C=GB/ST=London/L=London/O=Private/CN=${AWS::StackName}" -days 3650 -keyout /tmp/server.key -out /tmp/bundle.crt -extensions v3_ca
             - curl https://github.com/o2Labs/sentry-formation/archive/master.zip --output /tmp/repo.zip --location
-            - tar -xzvf /tmp/repo.zip -C /tmp/
+            - unzip /tmp/repo.zip -d /tmp
             - echo "${DeploymentHosts}" > /tmp/hosts.base64
             - base64 -d /tmp/hosts.base64 > /tmp/hosts.encrypted
             - aws kms decrypt --region ${AWS::Region} --ciphertext-blob "fileb:///tmp/hosts.encrypted" --output text --query Plaintext > /tmp/hosts.decrypted
             - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-master/hosts
-            - ansible-playbook /tmp/sentry-formation-master/site.yml -i /tmp/sentry-formation-master/hosts --limit aws
+            - ansible-playbook /tmp/sentry-formation-master/site.yml -i /tmp/sentry-formation-master/hosts
           - DeploymentHosts: !GetAtt EncryptedDeploymentHosts.CipherText
 
   SentryAutoScalingGroup:
