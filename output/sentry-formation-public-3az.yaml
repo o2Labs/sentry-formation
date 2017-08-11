@@ -1,0 +1,964 @@
+# This file was generated with lono. Do not edit directly, the changes will be lost.
+# More info: https://github.com/tongueroo/lono
+Description: Sentry.io internet facing setup across 3 availability zones
+Parameters:
+  #### Required ####
+  Owner:
+    Type: String
+    Description: Name of the owner of the service (normally your company name)
+  DBMasterUsername:
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    Description: Username for database access
+  DBMasterUserPassword:
+    NoEcho: true
+    Type: String
+    Description: Password for database access - minimum 8 characters
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: must contain 8 alphanumeric characters.
+  SSLCertARN:
+    Description: The ARN of the ACM cert
+    Type: String
+  KeyName:
+    Description: Name of existing EC2 keypair to enable SSH access to the created
+      instances
+    Type: AWS::EC2::KeyPair::KeyName
+  SentryAdminUser:
+    Type: String
+    MinLength: '1'
+    MaxLength: '30'
+    Description: Username for root sentry access
+  SentryAdminPassword:
+    NoEcho: true
+    Type: String
+    Description: Password for root sentry access - minimum 20 characters
+    MinLength: '20'
+  SentryPublicDnsName:
+    Type: String
+    Description: Host name that users will type to get to sentry.
+  SentrySecretKey:
+    Type: String
+    Description: Private key for encrypting user sessions.
+    MinLength: '50'
+    NoEcho: true
+  SentryGithubAppId:
+    Description: GitHub API App ID for SSO
+    Type: String
+  SentryGithubApiSecret:
+    Description: GitHub API secret key for SSO
+    Type: String
+    NoEcho: true
+  SentryMailUsername:
+    Description: SMTP username for sentry to use to send email
+    Type: String
+  SentryMailPassword:
+    Description: SMTP password for sentry to use to send email
+    Type: String
+    NoEcho: true
+  SentryMailFrom:
+    Description: Sending email address for sentry to use to send email
+    Type: String
+  #### Optional ####
+  VpcCidr:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC Cidr block
+    Default: 10.0.0.0/22
+    Type: String
+  VpcAvailabilityZone1:
+    Description: The AvailabilityZone to use for subnet 1
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: eu-west-1a
+  VpcAvailabilityZone2:
+    Description: The AvailabilityZone to use for subnet 2
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: eu-west-1b
+  VpcAvailabilityZone3:
+    Description: The AvailabilityZone to use for subnet 3
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: eu-west-1c
+  VpcPublicSubnetCIDR1:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.0/26
+    Description: VPC CIDR Block for Public Subnet 1
+    Type: String
+  VpcPublicSubnetCIDR2:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.64/26
+    Description: VPC CIDR Block for Public Subnet 2
+    Type: String
+  VpcPublicSubnetCIDR3:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.1.0/26
+    Description: VPC CIDR Block for Public Subnet 3
+    Type: String
+  VpcPrivateSubnetCIDR1:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.2.0/26
+    Description: VPC CIDR Block for Private Subnet 1
+    Type: String
+  VpcPrivateSubnetCIDR2:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.2.64/26
+    Description: VPC CIDR Block for Private Subnet 2
+    Type: String
+  VpcPrivateSubnetCIDR3:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.3.0/26
+    Description: VPC CIDR Block for Private Subnet 3
+    Type: String
+  ImageId:
+    Description: The AMI to use for this Sentry - YUM compliant required
+    Type: String
+    Default: ami-6d48500b
+  InstanceType:
+    Description: The size of the EC2 instances
+    Default: t2.medium
+    Type: String
+  DBName:
+    Type: String
+    Default: sentry
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: must begin with a letter and contain only alphanumeric
+      characters.
+  DBAllocatedStorage:
+    Type: String
+    Default: '5'
+  DBBackupRetentionPeriod:
+    Type: String
+    Default: '7'
+  DBInstanceClass:
+    Type: String
+    Default: db.t2.small
+  DBMultiAZ:
+    Type: String
+    Default: true
+    Description: Provides enhanced availablily for RDS
+  DBStorageType:
+    Type: String
+    Default: gp2
+  RedisEngineVersion:
+    Type: String
+    Description: Version of Redis engine to use.
+    Default: '3.2.4'
+  RedisNodeType:
+    Type: String
+    Default: cache.t2.small
+  RedisNumNodes:
+    Type: String
+    Default: '1'
+  SentryMailHost:
+    Description: SMTP host for sentry to use to send email
+    Type: String
+    Default: email-smtp.eu-west-1.amazonaws.com
+  SentryMailPort:
+    Description: SMTP port for sentry to use to send email
+    Type: String
+    Default: '25'
+  ScalingMinNodes:
+    Type: Number
+    Description: Minium size of the auto scaling group
+    Default: 1
+  ScalingMaxNodes:
+    Type: Number
+    Description: Maximum size of the auto scaling group
+    Default: 2
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  ###### Network ######
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties: 
+      CidrBlock:
+        Ref: VpcCidr
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value:
+            Ref: AWS::StackName
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone1}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR1}
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone1}]
+      VpcId: {Ref: VPC}
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone2}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR2}
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone2}]
+      VpcId: {Ref: VPC}
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone3}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR3}
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone3}]
+      VpcId: {Ref: VPC}
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone1}
+      CidrBlock: {Ref: VpcPrivateSubnetCIDR1}
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone1}]
+      VpcId: {Ref: VPC}
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone2}
+      CidrBlock: {Ref: VpcPrivateSubnetCIDR2}
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone2}]
+      VpcId: {Ref: VPC}
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone3}
+      CidrBlock: {Ref: VpcPrivateSubnetCIDR3}
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone3}]
+      VpcId: {Ref: VPC}
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value:
+          Ref: AWS::StackName
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: InternetGateway
+      VpcId:
+        Ref: VPC
+  ###### Public Routing ######
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public']
+      VpcId:
+        Ref: VPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: PublicRouteTable
+  PublicSubnetAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet1
+  PublicSubnetAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet2
+  PublicSubnetAssoc3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet3
+  ###### Private Routing ######
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private-1']
+      VpcId:
+        Ref: VPC
+  PrivateSubnetAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable1
+      SubnetId:
+        Ref: PrivateSubnet1
+  EIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NAT1:
+    DependsOn: GatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIP1
+        - AllocationId
+      SubnetId:
+        Ref: PublicSubnet1
+  NATRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT1
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private-2']
+      VpcId:
+        Ref: VPC
+  PrivateSubnetAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2
+      SubnetId:
+        Ref: PrivateSubnet2
+  EIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NAT2:
+    DependsOn: GatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIP2
+        - AllocationId
+      SubnetId:
+        Ref: PublicSubnet2
+  NATRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT2
+  PrivateRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private-3']
+      VpcId:
+        Ref: VPC
+  PrivateSubnetAssoc3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable3
+      SubnetId:
+        Ref: PrivateSubnet3
+  EIP3:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NAT3:
+    DependsOn: GatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIP3
+        - AllocationId
+      SubnetId:
+        Ref: PublicSubnet3
+  NATRoute3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT3
+  ###### Roles ######
+  RootEncryptionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+  SentryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  - Fn::Join:
+                    - ''
+                    - - !GetAtt SentryFilesS3Bucket.Arn
+                      - "/*"
+  ###### Encryption ######
+  SentryEncryptionKey:
+    Type: "AWS::KMS::Key"
+    Properties: 
+      Description: Sentry environment root encryption key
+      KeyPolicy: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: "Enable IAM User Permissions"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ''
+                  - ['arn:aws:iam::', {Ref: 'AWS::AccountId'}, ':root']
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: "Allow administration of the key"
+            Effect: "Allow"
+            Principal: 
+              AWS:
+                - !GetAtt RootEncryptionRole.Arn
+            Action: 
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+          - Sid: "Allow use of the key"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                - !GetAtt LambdaExecutionRole.Arn
+                - !GetAtt SentryRole.Arn
+            Action: 
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+            Resource: "*"
+  SentryEncryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName:
+        Fn::Join:
+          - ''
+          - ['alias/', {Ref: 'AWS::StackName'}]
+      TargetKeyId:
+        Ref: SentryEncryptionKey
+  EncryptionHelperFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: !Sub |
+          import base64
+          import uuid
+          import httplib
+          import urlparse
+          import json
+          import boto3
+          def send_response(request, response, status=None, reason=None):
+              """ Send our response to the pre-signed URL supplied by CloudFormation
+              If no ResponseURL is found in the request, there is no place to send a
+              response. This may be the case if the supplied event was for testing.
+              """
+              if status is not None:
+                  response['Status'] = status
+              if reason is not None:
+                  response['Reason'] = reason
+              if 'ResponseURL' in request and request['ResponseURL']:
+                  url = urlparse.urlparse(request['ResponseURL'])
+                  body = json.dumps(response)
+                  https = httplib.HTTPSConnection(url.hostname)
+                  https.request('PUT', url.path+'?'+url.query, body)
+              return response
+          def lambda_handler(event, context):
+              response = {
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'Status': 'SUCCESS'
+              }
+              # PhysicalResourceId is meaningless here, but CloudFormation requires it
+              if 'PhysicalResourceId' in event:
+                  response['PhysicalResourceId'] = event['PhysicalResourceId']
+              else:
+                  response['PhysicalResourceId'] = str(uuid.uuid4())
+              # There is nothing to do for a delete request
+              if event['RequestType'] == 'Delete':
+                  return send_response(event, response)
+              # Encrypt the value using AWS KMS and return the response
+              try:
+                  for key in ['KeyId', 'PlainText']:
+                      if key not in event['ResourceProperties'] or not event['ResourceProperties'][key]:
+                          return send_response(
+                              event, response, status='FAILED',
+                              reason='The properties KeyId and PlainText must not be empty'
+                          )
+                  client = boto3.client('kms')
+                  encrypted = client.encrypt(
+                      KeyId=event['ResourceProperties']['KeyId'],
+                      Plaintext=event['ResourceProperties']['PlainText']
+                  )
+                  response['Data'] = {
+                      'CipherText': base64.b64encode(encrypted['CiphertextBlob'])
+                  }
+                  response['Reason'] = 'The value was successfully encrypted'
+              except Exception as E:
+                  response['Status'] = 'FAILED'
+                  response['Reason'] = 'Encryption Failed - See CloudWatch logs for the Lamba function backing the custom resource for details'
+              return send_response(event, response)
+      Runtime: python2.7
+  ###### Redis ######
+  RedisAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPC
+      GroupDescription: Allows access only to sentry redis cluster
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'RedisAccess']
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Senty redis cluster source
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '6379'
+        ToPort: '6379'
+        SourceSecurityGroupId:
+          Ref: RedisAccessSecurityGroup
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'Redis']
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: Sentry stack redis subnet group
+      SubnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+        - Ref: PrivateSubnet3
+  RedisCacheCluster:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      CacheNodeType:
+        Ref: RedisNodeType
+      CacheSubnetGroupName:
+        Ref: RedisSubnetGroup
+      Engine: redis
+      EngineVersion:
+        Ref: RedisEngineVersion
+      NumCacheNodes:
+        Ref: RedisNumNodes
+      VpcSecurityGroupIds:
+      - Ref: RedisSecurityGroup
+  ###### Postgres ######
+  PostgresAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPC
+      GroupDescription: Allows access only to sentry postgres instance
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'PostgresAccess']
+  PostgresSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      SecurityGroupIngress:
+      - ToPort: '5432'
+        IpProtocol: tcp
+        FromPort: '5432'
+        SourceSecurityGroupId:
+          Ref: PostgresAccessSecurityGroup
+      VpcId:
+        Ref: VPC
+      GroupDescription: Senty postgres instance source
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'Postgres']
+  PostgresSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Sentry stack postgres subnet group
+      SubnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+        - Ref: PrivateSubnet3
+  PostgresInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage:
+        Ref: DBAllocatedStorage
+      BackupRetentionPeriod:
+        Ref: DBBackupRetentionPeriod
+      DBInstanceClass:
+        Ref: DBInstanceClass
+      DBName:
+        Ref: DBName
+      Engine: postgres
+      KmsKeyId:
+        Ref: SentryEncryptionKey
+      MasterUsername:
+        Ref: DBMasterUsername
+      MasterUserPassword:
+        Ref: DBMasterUserPassword
+      MultiAZ:
+        Ref: DBMultiAZ
+      Port: '5432'
+      PubliclyAccessible: 'false'
+      StorageEncrypted: 'true'
+      StorageType:
+        Ref: DBStorageType
+      VPCSecurityGroups:
+      - Ref: PostgresSecurityGroup
+      DBSubnetGroupName:
+        Ref: PostgresSubnetGroup
+  ###### File Storage ######
+  SentryFilesS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Join:
+        - ''
+        - - Ref: AWS::AccountId
+          - "-"
+          - Ref: AWS::StackName
+          - "-sentry-files"
+      AccessControl: Private
+  ###### App Server ######
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      SecurityGroupIngress:
+      - ToPort: '443'
+        IpProtocol: tcp
+        FromPort: '443'
+        CidrIp: 0.0.0.0/0
+      - ToPort: '443'
+        IpProtocol: tcp
+        FromPort: '443'
+        CidrIpv6: ::/0
+      VpcId:
+        Ref: VPC
+      GroupDescription: An ELB group allowing access only to from the corresponding
+        component
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'LoadBalancer']
+  SentryElasticLoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets:
+        - Ref: PublicSubnet1
+        - Ref: PublicSubnet2
+        - Ref: PublicSubnet3
+      Listeners:
+      - InstancePort: '443'
+        Protocol: HTTPS
+        InstanceProtocol: HTTPS
+        LoadBalancerPort: '443'
+        SSLCertificateId:
+          Ref: SSLCertARN
+        PolicyNames:
+          - SSLNegotiationPolicy
+      Policies:
+      - PolicyName : SSLNegotiationPolicy
+        PolicyType: SSLNegotiationPolicyType
+        Attributes:
+        - Name: Protocol-TLSv1.2
+          Value: 'true'
+        - Name: Server-Defined-Cipher-Order
+          Value: 'true'
+        - Name: ECDHE-ECDSA-AES128-GCM-SHA256
+          Value: 'true'
+        - Name: ECDHE-RSA-AES128-GCM-SHA256
+          Value: 'true'
+        - Name: ECDHE-ECDSA-AES128-SHA256
+          Value: 'true'
+        - Name: ECDHE-RSA-AES128-SHA256
+          Value: 'true'
+        - Name: ECDHE-ECDSA-AES256-GCM-SHA384
+          Value: 'true'
+        - Name: ECDHE-RSA-AES256-GCM-SHA384
+          Value: 'true'
+        - Name: ECDHE-ECDSA-AES256-SHA384
+          Value: 'true'
+        - Name: ECDHE-RSA-AES256-SHA384
+          Value: 'true'
+        - Name: AES128-GCM-SHA256
+          Value: 'true'
+        - Name: AES128-SHA256
+          Value: 'true'
+        - Name: AES256-GCM-SHA384
+          Value: 'true'
+        - Name: AES256-SHA256
+          Value: 'true'
+      CrossZone: false
+      SecurityGroups:
+      - Ref: LoadBalancerSecurityGroup
+      HealthCheck:
+        HealthyThreshold: 3
+        Interval: 10
+        Timeout: 5
+        UnhealthyThreshold: 10
+        Target: HTTPS:443/_health/
+  SentryInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+        - Ref: SentryRole
+  SentrySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      SecurityGroupIngress:
+      - ToPort: '443'
+        IpProtocol: tcp
+        FromPort: '443'
+        SourceSecurityGroupId:
+          Ref: LoadBalancerSecurityGroup
+      VpcId:
+        Ref: VPC
+      GroupDescription: Sentry instance security group, gives access to from load balancer
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'Sentry']
+  EncryptedDeploymentHosts:
+    Type: AWS::CloudFormation::CustomResource
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt EncryptionHelperFunction.Arn
+      KeyId:
+        Ref: SentryEncryptionKey
+      PlainText:
+        !Sub
+        - |
+          [aws]
+          127.0.0.1
+          [aws:vars]
+          user=ubuntu
+          owner="${Owner}"
+          sentry_admin_username="${SentryAdminUser}"
+          sentry_admin_password="${SentryAdminPassword}"
+          sentry_public_dns_name="${SentryPublicDnsName}"
+          sentry_secret_key="${SentrySecretKey}"
+          sentry_github_app_id="${SentryGithubAppId}"
+          sentry_github_api_secret="${SentryGithubApiSecret}"
+          sentry_url="${SentryUrl}"
+          sentry_db_host="${DBHost}"
+          sentry_db_port="5432"
+          sentry_db_name="${DBName}"
+          sentry_db_user="${DBMasterUsername}"
+          sentry_db_password="${DBMasterUserPassword}"
+          sentry_redis_host="${RedisHost}"
+          sentry_redis_port="6379"
+          sentry_mail_host="${SentryMailHost}"
+          sentry_mail_port="${SentryMailPort}"
+          sentry_mail_username="${SentryMailUsername}"
+          sentry_mail_password="${SentryMailPassword}"
+          sentry_mail_from="${SentryMailFrom}"
+          sentry_files_bucket_name="${AWS::AccountId}-${AWS::StackName}-sentry-files"
+        - SentryUrl: !GetAtt SentryElasticLoadBalancer.DNSName
+          DBHost: !GetAtt PostgresInstance.Endpoint.Address
+          RedisHost: !GetAtt RedisCacheCluster.RedisEndpoint.Address
+  SentryLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId:
+        Ref: ImageId
+      SecurityGroups:
+      - Ref: SentrySecurityGroup
+      - Ref: PostgresAccessSecurityGroup
+      - Ref: RedisAccessSecurityGroup
+      InstanceType:
+        Ref: InstanceType
+      IamInstanceProfile: 
+        Ref: SentryInstanceProfile
+      UserData:
+        Fn::Base64:
+          !Sub
+          - |
+            #cloud-config
+            runcmd:
+            - apt-get update
+            - apt-get install ansible awscli unzip -y
+            - openssl req -new -nodes -x509 -subj "/C=GB/ST=London/L=London/O=Private/CN=${AWS::StackName}" -days 3650 -keyout /tmp/server.key -out /tmp/bundle.crt -extensions v3_ca
+            - curl https://github.com/o2Labs/sentry-formation/archive/master.zip --output /tmp/repo.zip --location
+            - unzip /tmp/repo.zip -d /tmp
+            - echo "${DeploymentHosts}" > /tmp/hosts.base64
+            - base64 -d /tmp/hosts.base64 > /tmp/hosts.encrypted
+            - aws kms decrypt --region ${AWS::Region} --ciphertext-blob "fileb:///tmp/hosts.encrypted" --output text --query Plaintext > /tmp/hosts.decrypted
+            - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-master/hosts
+            - ansible-playbook /tmp/sentry-formation-master/site.yml -i /tmp/sentry-formation-master/hosts
+          - DeploymentHosts: !GetAtt EncryptedDeploymentHosts.CipherText
+  SentryAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        PauseTime: PT15M
+        MaxBatchSize: 1
+        MinInstancesInService: 1
+    Properties:
+      LoadBalancerNames:
+      - Ref: SentryElasticLoadBalancer
+      MinSize: 
+        Ref: ScalingMinNodes
+      MaxSize:
+        Ref: ScalingMaxNodes
+      LaunchConfigurationName:
+        Ref: SentryLaunchConfiguration
+      Tags:
+      - PropagateAtLaunch: true
+        Key: Name
+        Value:
+          Ref: AWS::StackName
+      VPCZoneIdentifier:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+        - Ref: PrivateSubnet3
+  SentryScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      ScalingAdjustment: 1
+      AutoScalingGroupName:
+        Ref: SentryAutoScalingGroup
+      AdjustmentType: ChangeInCapacity
