@@ -1,6 +1,6 @@
 # This file was generated with lono. Do not edit directly, the changes will be lost.
 # More info: https://github.com/tongueroo/lono
-Description: Sentry.io internal setup across 2 availability zones
+Description: Sentry.io internal setup in 2 availability zones
 Parameters:
   #### Required ####
   Owner:
@@ -671,15 +671,6 @@ Resources:
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      SecurityGroupIngress:
-      - ToPort: '443'
-        IpProtocol: tcp
-        FromPort: '443'
-        CidrIp: 0.0.0.0/0
-      - ToPort: '443'
-        IpProtocol: tcp
-        FromPort: '443'
-        CidrIpv6: ::/0
       VpcId:
         Ref: VPC
       GroupDescription: An ELB group allowing access only to from the corresponding

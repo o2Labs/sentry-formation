@@ -1,6 +1,6 @@
 # This file was generated with lono. Do not edit directly, the changes will be lost.
 # More info: https://github.com/tongueroo/lono
-Description: Sentry.io internet facing setup in only 1 availability zone
+Description: Sentry.io internet facing setup in 1 availability zones
 Parameters:
   #### Required ####
   Owner:

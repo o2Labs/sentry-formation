@@ -41,7 +41,20 @@ This is a great option if you want to automatically deploy your stack from your 
 1. Take a copy of `deploy-example.sh`.
 2. Fill in the parameters.
 
-### Running locally
+## Contributing
+
+### Building templates
+
+Requires Ruby & Bundler to be installed locally.
+
+```
+bundle install
+lono generate
+```
+
+### Running locally via vagrant
+
+Requires Vagrant and Ansible to be installed locally.
 
 ```
 vagrant up

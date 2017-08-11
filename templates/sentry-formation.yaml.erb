@@ -649,6 +649,7 @@ Resources:
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
+<% if @visibility === "internet-facing" -%>
       SecurityGroupIngress:
       - ToPort: '443'
         IpProtocol: tcp
@@ -658,6 +659,7 @@ Resources:
         IpProtocol: tcp
         FromPort: '443'
         CidrIpv6: ::/0
+<% end -%>
       VpcId:
         Ref: VPC
       GroupDescription: An ELB group allowing access only to from the corresponding
