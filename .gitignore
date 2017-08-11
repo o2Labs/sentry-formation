@@ -1,4 +1,7 @@
 ### Ansible ###
 *.retry
 .vagrant
+
+### Build ###
 deploy.sh
+artifacts
