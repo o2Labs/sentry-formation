@@ -1,0 +1,13 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - gem install bundle
+      - bundle install
+  build:
+    commands:
+      - lono generate
+artifacts:
+  files:
+    - output/*
