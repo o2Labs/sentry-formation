@@ -76,6 +76,16 @@ Parameters:
     Description: The AvailabilityZone to use for subnet 2
     Type: AWS::EC2::AvailabilityZone::Name
     Default: eu-west-1b
+  VpcPublicSubnetCIDR1:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.0/26
+    Description: VPC CIDR Block for Public Subnet 1
+    Type: String
+  VpcPublicSubnetCIDR2:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.64/26
+    Description: VPC CIDR Block for Public Subnet 2
+    Type: String
   VpcPrivateSubnetCIDR1:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Default: 10.0.2.0/26
@@ -157,6 +167,32 @@ Resources:
         - Key: Name
           Value:
             Ref: AWS::StackName
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone1}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR1}
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone1}]
+      VpcId: {Ref: VPC}
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone2}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR2}
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone2}]
+      VpcId: {Ref: VPC}
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -197,6 +233,40 @@ Resources:
         Ref: InternetGateway
       VpcId:
         Ref: VPC
+  ###### Public Routing ######
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public']
+      VpcId:
+        Ref: VPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: PublicRouteTable
+  PublicSubnetAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet1
+  PublicSubnetAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet2
   ###### Private Routing ######
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -626,6 +696,7 @@ Resources:
       Subnets:
         - Ref: PrivateSubnet1
         - Ref: PrivateSubnet2
+      Scheme: internal
       Listeners:
       - InstancePort: '443'
         Protocol: HTTPS

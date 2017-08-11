@@ -74,14 +74,12 @@ Parameters:
     Type: AWS::EC2::AvailabilityZone::Name
     Default: eu-west-1<%= (@num + 96).chr %>
 <% end -%>
-<% if @visibility === "internet-facing" -%>
 <% for @num in 1..@availability_zones -%>
   VpcPublicSubnetCIDR<%= @num %>:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Default: 10.0.<%= ((@num - 1) / 2).floor  %>.<%= (@num - 1) * 64 % 128  %>/26
     Description: VPC CIDR Block for Public Subnet <%= @num %>
     Type: String
-<% end -%>
 <% end -%>
 <% for @num in 1..@availability_zones -%>
   VpcPrivateSubnetCIDR<%= @num %>:
@@ -163,7 +161,6 @@ Resources:
           Value:
             Ref: AWS::StackName
 
-<% if @visibility === "internet-facing" -%>
 <% for @num in 1..@availability_zones -%>
   PublicSubnet<%= @num %>:
     Type: AWS::EC2::Subnet
@@ -178,7 +175,6 @@ Resources:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone<%= @num %>}]
       VpcId: {Ref: VPC}
-<% end -%>
 <% end -%>
 
 <% for @num in 1..@availability_zones -%>
@@ -213,7 +209,6 @@ Resources:
       VpcId:
         Ref: VPC
 
-<% if @visibility === "internet-facing" -%>
   ###### Public Routing ######
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -244,7 +239,6 @@ Resources:
         Ref: PublicRouteTable
       SubnetId:
         Ref: PublicSubnet<%= @num %>
-<% end -%>
 <% end -%>
 
   ###### Private Routing ######
@@ -686,6 +680,7 @@ Resources:
         - Ref: PrivateSubnet<%= @num %>
 <% end -%>
 <% end -%>
+      Scheme: <%= @visibility %>
       Listeners:
       - InstancePort: '443'
         Protocol: HTTPS

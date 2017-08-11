@@ -606,6 +606,7 @@ Resources:
     Properties:
       Subnets:
         - Ref: PublicSubnet1
+      Scheme: internet-facing
       Listeners:
       - InstancePort: '443'
         Protocol: HTTPS
