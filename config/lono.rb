@@ -1,21 +1,23 @@
-(1..3).each do |zones|
-  template "sentry-formation-public-#{zones}az.yaml" do
+def generate(visibility, zones, version)
+  template "#{version}-#{visibility}-#{zones}az.yaml" do
     source "sentry-formation.yaml.erb"
     variables(
-        :Description => "Sentry.io internet facing setup in #{zones} availability zones",
-        :visibility => "internet-facing",
-        :availability_zones => zones,
+      :Description => "Sentry.io #{visibility} setup in #{zones} availability zones",
+      :visibility => visibility,
+      :availability_zones => zones,
+      :version => version
     )
   end
 end
 
-(1..3).each do |zones|
-  template "sentry-formation-internal-#{zones}az.yaml" do
-    source "sentry-formation.yaml.erb"
-    variables(
-      :Description => "Sentry.io internal setup in #{zones} availability zones",
-      :visibility => "internal",
-      :availability_zones => zones,
-    )
+def get_version()
+  File.foreach('Releases.md').first.match(/[0-9.]+/)[0]
+end
+
+[get_version(), 'master'].each do |version|
+  ["internal", "internet-facing"].each do |visibility|
+    (1..3).each do |zones|
+      generate(visibility, zones, version)
+    end
   end
 end

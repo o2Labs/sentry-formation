@@ -1,6 +1,6 @@
 # This file was generated with lono. Do not edit directly, the changes will be lost.
 # More info: https://github.com/tongueroo/lono
-Description: Sentry.io internet facing setup in 3 availability zones
+Description: Sentry.io internet-facing setup in 3 availability zones
 Parameters:
   #### Required ####
   Owner:
@@ -923,13 +923,13 @@ Resources:
             - apt-get update
             - apt-get install ansible awscli unzip -y
             - openssl req -new -nodes -x509 -subj "/C=GB/ST=London/L=London/O=Private/CN=${AWS::StackName}" -days 3650 -keyout /tmp/server.key -out /tmp/bundle.crt -extensions v3_ca
-            - curl https://github.com/o2Labs/sentry-formation/archive/master.zip --output /tmp/repo.zip --location
+            - curl https://github.com/o2Labs/sentry-formation/archive/1.0.0.zip --output /tmp/repo.zip --location
             - unzip /tmp/repo.zip -d /tmp
             - echo "${DeploymentHosts}" > /tmp/hosts.base64
             - base64 -d /tmp/hosts.base64 > /tmp/hosts.encrypted
             - aws kms decrypt --region ${AWS::Region} --ciphertext-blob "fileb:///tmp/hosts.encrypted" --output text --query Plaintext > /tmp/hosts.decrypted
-            - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-master/hosts
-            - ansible-playbook /tmp/sentry-formation-master/site.yml -i /tmp/sentry-formation-master/hosts
+            - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-1.0.0/hosts
+            - ansible-playbook /tmp/sentry-formation-1.0.0/site.yml -i /tmp/sentry-formation-1.0.0/hosts
           - DeploymentHosts: !GetAtt EncryptedDeploymentHosts.CipherText
   SentryAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup

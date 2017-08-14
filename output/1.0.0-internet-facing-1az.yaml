@@ -1,6 +1,7 @@
-Description: <%= @Description %>
+# This file was generated with lono. Do not edit directly, the changes will be lost.
+# More info: https://github.com/tongueroo/lono
+Description: Sentry.io internet-facing setup in 1 availability zones
 Parameters:
-
   #### Required ####
   Owner:
     Type: String
@@ -61,33 +62,26 @@ Parameters:
   SentryMailFrom:
     Description: Sending email address for sentry to use to send email
     Type: String
-
   #### Optional ####
   VpcCidr:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Description: VPC Cidr block
     Default: 10.0.0.0/22
     Type: String
-<% for @num in 1..@availability_zones -%>
-  VpcAvailabilityZone<%= @num %>:
-    Description: The AvailabilityZone to use for subnet <%= @num %>
+  VpcAvailabilityZone1:
+    Description: The AvailabilityZone to use for subnet 1
     Type: AWS::EC2::AvailabilityZone::Name
-    Default: eu-west-1<%= (@num + 96).chr %>
-<% end -%>
-<% for @num in 1..@availability_zones -%>
-  VpcPublicSubnetCIDR<%= @num %>:
+    Default: eu-west-1a
+  VpcPublicSubnetCIDR1:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Default: 10.0.<%= ((@num - 1) / 2).floor  %>.<%= (@num - 1) * 64 % 128  %>/26
-    Description: VPC CIDR Block for Public Subnet <%= @num %>
+    Default: 10.0.0.0/26
+    Description: VPC CIDR Block for Public Subnet 1
     Type: String
-<% end -%>
-<% for @num in 1..@availability_zones -%>
-  VpcPrivateSubnetCIDR<%= @num %>:
+  VpcPrivateSubnetCIDR1:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Default: 10.0.<%= ((@num + 3) / 2).floor  %>.<%= (@num - 1) * 64 % 128  %>/26
-    Description: VPC CIDR Block for Private Subnet <%= @num %>
+    Default: 10.0.2.0/26
+    Description: VPC CIDR Block for Private Subnet 1
     Type: String
-<% end -%>
   ImageId:
     Description: The AMI to use for this Sentry - YUM compliant required
     Type: String
@@ -115,7 +109,7 @@ Parameters:
     Default: db.t2.small
   DBMultiAZ:
     Type: String
-    Default: <%= @availability_zones > 1 %>
+    Default: false
     Description: Provides enhanced availablily for RDS
   DBStorageType:
     Type: String
@@ -146,7 +140,6 @@ Parameters:
     Type: Number
     Description: Maximum size of the auto scaling group
     Default: 2
-
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   ###### Network ######
@@ -160,39 +153,32 @@ Resources:
         - Key: Name
           Value:
             Ref: AWS::StackName
-
-<% for @num in 1..@availability_zones -%>
-  PublicSubnet<%= @num %>:
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: {Ref: VpcAvailabilityZone<%= @num %>}
-      CidrBlock: {Ref: VpcPublicSubnetCIDR<%= @num %>}
+      AvailabilityZone: {Ref: VpcAvailabilityZone1}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR1}
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value:
             Fn::Join:
               - '-'
-              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone<%= @num %>}]
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone1}]
       VpcId: {Ref: VPC}
-<% end -%>
-
-<% for @num in 1..@availability_zones -%>
-  PrivateSubnet<%= @num %>:
+  PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: {Ref: VpcAvailabilityZone<%= @num %>}
-      CidrBlock: {Ref: VpcPrivateSubnetCIDR<%= @num %>}
+      AvailabilityZone: {Ref: VpcAvailabilityZone1}
+      CidrBlock: {Ref: VpcPrivateSubnetCIDR1}
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
           Value:
             Fn::Join:
               - '-'
-              - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone<%= @num %>}]
+              - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone1}]
       VpcId: {Ref: VPC}
-<% end -%>
-
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -200,7 +186,6 @@ Resources:
       - Key: Name
         Value:
           Ref: AWS::StackName
-
   GatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -208,7 +193,6 @@ Resources:
         Ref: InternetGateway
       VpcId:
         Ref: VPC
-
   ###### Public Routing ######
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -221,7 +205,6 @@ Resources:
               - [{Ref: 'AWS::StackName'}, 'public']
       VpcId:
         Ref: VPC
-
   PublicRoute:
     Type: AWS::EC2::Route
     Properties:
@@ -230,20 +213,15 @@ Resources:
         Ref: InternetGateway
       RouteTableId:
         Ref: PublicRouteTable
-
-<% for @num in 1..@availability_zones -%>
-  PublicSubnetAssoc<%= @num %>:
+  PublicSubnetAssoc1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId:
         Ref: PublicRouteTable
       SubnetId:
-        Ref: PublicSubnet<%= @num %>
-<% end -%>
-
+        Ref: PublicSubnet1
   ###### Private Routing ######
-<% for @num in 1..@availability_zones -%>
-  PrivateRouteTable<%= @num %>:
+  PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
       Tags:
@@ -251,46 +229,39 @@ Resources:
           Value:
             Fn::Join:
               - '-'
-              - [{Ref: 'AWS::StackName'}, 'private-<%= @num %>']
+              - [{Ref: 'AWS::StackName'}, 'private-1']
       VpcId:
         Ref: VPC
-
-  PrivateSubnetAssoc<%= @num %>:
+  PrivateSubnetAssoc1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId:
-        Ref: PrivateRouteTable<%= @num %>
+        Ref: PrivateRouteTable1
       SubnetId:
-        Ref: PrivateSubnet<%= @num %>
-
-  EIP<%= @num %>:
+        Ref: PrivateSubnet1
+  EIP1:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-
-  NAT<%= @num %>:
+  NAT1:
     DependsOn: GatewayAttachment
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId:
         Fn::GetAtt:
-        - EIP<%= @num %>
+        - EIP1
         - AllocationId
       SubnetId:
-        Ref: PublicSubnet<%= @num %>
-
-  NATRoute<%= @num %>:
+        Ref: PublicSubnet1
+  NATRoute1:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId:
-        Ref: PrivateRouteTable<%= @num %>
+        Ref: PrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
-        Ref: NAT<%= @num %>
-<% end -%>
-
+        Ref: NAT1
   ###### Roles ######
-
   RootEncryptionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -303,7 +274,6 @@ Resources:
             Action:
               - "sts:AssumeRole"
       Path: "/"
-
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -326,7 +296,6 @@ Resources:
             Action:
             - logs:*
             Resource: arn:aws:logs:*:*:*
-
   SentryRole:
     Type: AWS::IAM::Role
     Properties:
@@ -355,9 +324,7 @@ Resources:
                     - ''
                     - - !GetAtt SentryFilesS3Bucket.Arn
                       - "/*"
-
   ###### Encryption ######
-
   SentryEncryptionKey:
     Type: "AWS::KMS::Key"
     Properties: 
@@ -408,7 +375,6 @@ Resources:
               - "kms:GenerateDataKey*"
               - "kms:DescribeKey"
             Resource: "*"
-
   SentryEncryptionKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
@@ -418,7 +384,6 @@ Resources:
           - ['alias/', {Ref: 'AWS::StackName'}]
       TargetKeyId:
         Ref: SentryEncryptionKey
-
   EncryptionHelperFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -432,75 +397,58 @@ Resources:
           import urlparse
           import json
           import boto3
-
           def send_response(request, response, status=None, reason=None):
               """ Send our response to the pre-signed URL supplied by CloudFormation
-
               If no ResponseURL is found in the request, there is no place to send a
               response. This may be the case if the supplied event was for testing.
               """
-
               if status is not None:
                   response['Status'] = status
-
               if reason is not None:
                   response['Reason'] = reason
-
               if 'ResponseURL' in request and request['ResponseURL']:
                   url = urlparse.urlparse(request['ResponseURL'])
                   body = json.dumps(response)
                   https = httplib.HTTPSConnection(url.hostname)
                   https.request('PUT', url.path+'?'+url.query, body)
-
               return response
-
           def lambda_handler(event, context):
-
               response = {
                   'StackId': event['StackId'],
                   'RequestId': event['RequestId'],
                   'LogicalResourceId': event['LogicalResourceId'],
                   'Status': 'SUCCESS'
               }
-
               # PhysicalResourceId is meaningless here, but CloudFormation requires it
               if 'PhysicalResourceId' in event:
                   response['PhysicalResourceId'] = event['PhysicalResourceId']
               else:
                   response['PhysicalResourceId'] = str(uuid.uuid4())
-
               # There is nothing to do for a delete request
               if event['RequestType'] == 'Delete':
                   return send_response(event, response)
-
               # Encrypt the value using AWS KMS and return the response
               try:
-
                   for key in ['KeyId', 'PlainText']:
                       if key not in event['ResourceProperties'] or not event['ResourceProperties'][key]:
                           return send_response(
                               event, response, status='FAILED',
                               reason='The properties KeyId and PlainText must not be empty'
                           )
-
                   client = boto3.client('kms')
                   encrypted = client.encrypt(
                       KeyId=event['ResourceProperties']['KeyId'],
                       Plaintext=event['ResourceProperties']['PlainText']
                   )
-
                   response['Data'] = {
                       'CipherText': base64.b64encode(encrypted['CiphertextBlob'])
                   }
                   response['Reason'] = 'The value was successfully encrypted'
-
               except Exception as E:
                   response['Status'] = 'FAILED'
                   response['Reason'] = 'Encryption Failed - See CloudWatch logs for the Lamba function backing the custom resource for details'
-
               return send_response(event, response)
       Runtime: python2.7
-
   ###### Redis ######
   RedisAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -514,7 +462,6 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'RedisAccess']
-
   RedisSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -533,16 +480,12 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'Redis']
-
   RedisSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
       Description: Sentry stack redis subnet group
       SubnetIds:
-<% for @num in 1..@availability_zones -%>
-        - Ref: PrivateSubnet<%= @num %>
-<% end -%>
-
+        - Ref: PrivateSubnet1
   RedisCacheCluster:
     Type: AWS::ElastiCache::CacheCluster
     Properties:
@@ -557,7 +500,6 @@ Resources:
         Ref: RedisNumNodes
       VpcSecurityGroupIds:
       - Ref: RedisSecurityGroup
-
   ###### Postgres ######
   PostgresAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -571,7 +513,6 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'PostgresAccess']
-
   PostgresSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -590,16 +531,12 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'Postgres']
-
   PostgresSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: Sentry stack postgres subnet group
       SubnetIds:
-<% for @num in 1..@availability_zones -%>
-        - Ref: PrivateSubnet<%= @num %>
-<% end -%>
-
+        - Ref: PrivateSubnet1
   PostgresInstance:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -629,9 +566,7 @@ Resources:
       - Ref: PostgresSecurityGroup
       DBSubnetGroupName:
         Ref: PostgresSubnetGroup
-
   ###### File Storage ######
-
   SentryFilesS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -643,13 +578,10 @@ Resources:
           - Ref: AWS::StackName
           - "-sentry-files"
       AccessControl: Private
-
   ###### App Server ######
-
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-<% if @visibility === "internet-facing" -%>
       SecurityGroupIngress:
       - ToPort: '443'
         IpProtocol: tcp
@@ -659,7 +591,6 @@ Resources:
         IpProtocol: tcp
         FromPort: '443'
         CidrIpv6: ::/0
-<% end -%>
       VpcId:
         Ref: VPC
       GroupDescription: An ELB group allowing access only to from the corresponding
@@ -670,19 +601,12 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'LoadBalancer']
-
   SentryElasticLoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
     Properties:
       Subnets:
-<% for @num in 1..@availability_zones -%>
-<% if @visibility === "internet-facing" -%>
-        - Ref: PublicSubnet<%= @num %>
-<% else -%>
-        - Ref: PrivateSubnet<%= @num %>
-<% end -%>
-<% end -%>
-      Scheme: <%= @visibility %>
+        - Ref: PublicSubnet1
+      Scheme: internet-facing
       Listeners:
       - InstancePort: '443'
         Protocol: HTTPS
@@ -733,14 +657,12 @@ Resources:
         Timeout: 5
         UnhealthyThreshold: 10
         Target: HTTPS:443/_health/
-
   SentryInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: "/"
       Roles:
         - Ref: SentryRole
-
   SentrySecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -759,7 +681,6 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'Sentry']
-
   EncryptedDeploymentHosts:
     Type: AWS::CloudFormation::CustomResource
     Version: "1.0"
@@ -772,7 +693,6 @@ Resources:
         - |
           [aws]
           127.0.0.1
-
           [aws:vars]
           user=ubuntu
           owner="${Owner}"
@@ -799,7 +719,6 @@ Resources:
         - SentryUrl: !GetAtt SentryElasticLoadBalancer.DNSName
           DBHost: !GetAtt PostgresInstance.Endpoint.Address
           RedisHost: !GetAtt RedisCacheCluster.RedisEndpoint.Address
-
   SentryLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
@@ -824,15 +743,14 @@ Resources:
             - apt-get update
             - apt-get install ansible awscli unzip -y
             - openssl req -new -nodes -x509 -subj "/C=GB/ST=London/L=London/O=Private/CN=${AWS::StackName}" -days 3650 -keyout /tmp/server.key -out /tmp/bundle.crt -extensions v3_ca
-            - curl https://github.com/o2Labs/sentry-formation/archive/<%= @version %>.zip --output /tmp/repo.zip --location
+            - curl https://github.com/o2Labs/sentry-formation/archive/1.0.0.zip --output /tmp/repo.zip --location
             - unzip /tmp/repo.zip -d /tmp
             - echo "${DeploymentHosts}" > /tmp/hosts.base64
             - base64 -d /tmp/hosts.base64 > /tmp/hosts.encrypted
             - aws kms decrypt --region ${AWS::Region} --ciphertext-blob "fileb:///tmp/hosts.encrypted" --output text --query Plaintext > /tmp/hosts.decrypted
-            - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-<%= @version %>/hosts
-            - ansible-playbook /tmp/sentry-formation-<%= @version %>/site.yml -i /tmp/sentry-formation-<%= @version %>/hosts
+            - base64 -d /tmp/hosts.decrypted > /tmp/sentry-formation-1.0.0/hosts
+            - ansible-playbook /tmp/sentry-formation-1.0.0/site.yml -i /tmp/sentry-formation-1.0.0/hosts
           - DeploymentHosts: !GetAtt EncryptedDeploymentHosts.CipherText
-
   SentryAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
@@ -855,10 +773,7 @@ Resources:
         Value:
           Ref: AWS::StackName
       VPCZoneIdentifier:
-<% for @num in 1..@availability_zones -%>
-        - Ref: PrivateSubnet<%= @num %>
-<% end -%>
-
+        - Ref: PrivateSubnet1
   SentryScalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:

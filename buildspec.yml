@@ -8,14 +8,8 @@ phases:
   build:
     commands:
       - lono generate
-  post_build:
-    commands:
-      - mkdir -p artifacts/latest
-      - mkdir -p "artifacts/$CODEBUILD_SOURCE_VERSION"
-      - cp output/* artifacts/latest
-      - cp output/* "artifacts/$CODEBUILD_SOURCE_VERSION"
 
 artifacts:
   files:
     - '**/*'
-  base-directory: artifacts
+  base-directory: output

@@ -1,6 +1,6 @@
 # This file was generated with lono. Do not edit directly, the changes will be lost.
 # More info: https://github.com/tongueroo/lono
-Description: Sentry.io internet facing setup in 1 availability zones
+Description: Sentry.io internet-facing setup in 2 availability zones
 Parameters:
   #### Required ####
   Owner:
@@ -72,15 +72,29 @@ Parameters:
     Description: The AvailabilityZone to use for subnet 1
     Type: AWS::EC2::AvailabilityZone::Name
     Default: eu-west-1a
+  VpcAvailabilityZone2:
+    Description: The AvailabilityZone to use for subnet 2
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: eu-west-1b
   VpcPublicSubnetCIDR1:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Default: 10.0.0.0/26
     Description: VPC CIDR Block for Public Subnet 1
     Type: String
+  VpcPublicSubnetCIDR2:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.64/26
+    Description: VPC CIDR Block for Public Subnet 2
+    Type: String
   VpcPrivateSubnetCIDR1:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Default: 10.0.2.0/26
     Description: VPC CIDR Block for Private Subnet 1
+    Type: String
+  VpcPrivateSubnetCIDR2:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.2.64/26
+    Description: VPC CIDR Block for Private Subnet 2
     Type: String
   ImageId:
     Description: The AMI to use for this Sentry - YUM compliant required
@@ -109,7 +123,7 @@ Parameters:
     Default: db.t2.small
   DBMultiAZ:
     Type: String
-    Default: false
+    Default: true
     Description: Provides enhanced availablily for RDS
   DBStorageType:
     Type: String
@@ -166,6 +180,19 @@ Resources:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone1}]
       VpcId: {Ref: VPC}
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone2}
+      CidrBlock: {Ref: VpcPublicSubnetCIDR2}
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'public', {Ref: VpcAvailabilityZone2}]
+      VpcId: {Ref: VPC}
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -178,6 +205,19 @@ Resources:
             Fn::Join:
               - '-'
               - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone1}]
+      VpcId: {Ref: VPC}
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: {Ref: VpcAvailabilityZone2}
+      CidrBlock: {Ref: VpcPrivateSubnetCIDR2}
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private', {Ref: VpcAvailabilityZone2}]
       VpcId: {Ref: VPC}
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -220,6 +260,13 @@ Resources:
         Ref: PublicRouteTable
       SubnetId:
         Ref: PublicSubnet1
+  PublicSubnetAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet2
   ###### Private Routing ######
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -261,6 +308,46 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
         Ref: NAT1
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - [{Ref: 'AWS::StackName'}, 'private-2']
+      VpcId:
+        Ref: VPC
+  PrivateSubnetAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2
+      SubnetId:
+        Ref: PrivateSubnet2
+  EIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NAT2:
+    DependsOn: GatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIP2
+        - AllocationId
+      SubnetId:
+        Ref: PublicSubnet2
+  NATRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT2
   ###### Roles ######
   RootEncryptionRole:
     Type: AWS::IAM::Role
@@ -486,6 +573,7 @@ Resources:
       Description: Sentry stack redis subnet group
       SubnetIds:
         - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
   RedisCacheCluster:
     Type: AWS::ElastiCache::CacheCluster
     Properties:
@@ -537,6 +625,7 @@ Resources:
       DBSubnetGroupDescription: Sentry stack postgres subnet group
       SubnetIds:
         - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
   PostgresInstance:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -606,6 +695,7 @@ Resources:
     Properties:
       Subnets:
         - Ref: PublicSubnet1
+        - Ref: PublicSubnet2
       Scheme: internet-facing
       Listeners:
       - InstancePort: '443'
@@ -774,6 +864,7 @@ Resources:
           Ref: AWS::StackName
       VPCZoneIdentifier:
         - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
   SentryScalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
