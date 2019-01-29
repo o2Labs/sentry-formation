@@ -62,6 +62,7 @@ redis.clusters:
 filestore.backend: 's3'
 filestore.options:
   bucket_name: '{{ sentry_files_bucket_name }}'
+  signature_version: 's3v4'
 {% else %}
 filestore.backend: 'filesystem'
 filestore.options:
