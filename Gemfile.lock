@@ -11,7 +11,7 @@ GEM
     aws-sigv4 (1.0.1)
     coderay (1.1.1)
     colorize (0.8.1)
-    ffi (1.9.18)
+    ffi (1.11.1)
     formatador (0.2.5)
     guard (2.14.1)
       formatador (>= 0.2.4)
