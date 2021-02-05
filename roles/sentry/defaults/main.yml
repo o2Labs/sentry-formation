@@ -4,6 +4,8 @@ other_python_pkgs:
   - libffi-dev
   - libjpeg-dev
   - libxml2-dev
+  - libxmlsec1-dev
+  - libxmlsec1-openssl
   - libxslt-dev
   - libyaml-dev
   - libpq-dev
@@ -18,4 +20,4 @@ other_python_pkgs:
   - libblas-dev
   - liblapack-dev
   - libatlas-base-dev
-  - python-passlib
+  - python3-passlib

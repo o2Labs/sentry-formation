@@ -11,7 +11,7 @@
     - name: Update apt packages
       raw: apt-get update
     - name: Install python
-      raw: apt-get install python-minimal aptitude -y
+      raw: apt-get install python3 aptitude -y
     - name: Gather facts
       action: setup
   become: yes
@@ -28,7 +28,7 @@
     - name: Update apt packages
       raw: apt-get update
     - name: Install python
-      raw: apt-get install python-minimal aptitude -y
+      raw: apt-get install python3 aptitude -y
     - name: Gather facts
       action: setup
   become: yes # become sudo

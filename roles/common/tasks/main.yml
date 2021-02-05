@@ -11,10 +11,10 @@
   with_items:
     - autoconf
     - build-essential
-    - python-setuptools
-    - python-software-properties
-    - python-dev
-    - python-pip
+    - python3-setuptools
+    - python3-software-properties
+    - python3-dev
+    - python3-pip
     - libncurses-dev
 
 # CIS CAT secuirty configurations
@@ -299,7 +299,7 @@
     - x_window
 
 - name: disable apport
-  lineinfile: dest=/etc/init/apport.conf regexp="^env enabled" line="env enabled=0"
+  lineinfile: dest=/etc/default/apport regexp="^enabled" line="enabled=0"
   become: true
   tags:
     - cis_cat_security
