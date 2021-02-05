@@ -18,7 +18,7 @@
     - python
 
 - name: install python mysql bindings for mysql commands
-  apt: name=python-mysqldb state=installed
+  apt: name=python3-mysqldb state=installed
   tags:
     - python
 
