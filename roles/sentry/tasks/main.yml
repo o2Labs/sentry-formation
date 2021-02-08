@@ -67,7 +67,6 @@
   pip: 
     name: sentry
     virtualenv: /www/sentry/ve
-    version: 9.1.2
   tags: sentry
 
 - name: Install Sentry GitHub auth
