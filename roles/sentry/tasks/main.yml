@@ -7,7 +7,7 @@
     - python
 
 - name: Install all relevant files for server
-  pip: name={{item}} executable=pip
+  pip: name={{item}} executable=pip3
   with_items:
     - urllib3
     - pyopenssl
@@ -18,7 +18,7 @@
     - python
 
 - name: install python mysql bindings for mysql commands
-  apt: name=python-mysqldb state=installed
+  apt: name=python3-mysqldb state=present
   tags:
     - python
 
